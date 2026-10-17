@@ -113,10 +113,23 @@ A remote deployment has two independent phases:
 Both roles must use the same session ID and distinct peer IDs. See
 [Getting started](docs/getting-started.md) for complete provider/client flows.
 
+## Application connections over ICE/QUIC
+
+Applications that do not speak the object RPC can use `AcceptComm` and
+`DialComm` with the same signaling channels. A `CommSession` opens or accepts
+independent bidirectional `net.Conn` streams under the separate
+`p2pstore-comm/1` ALPN. This is a connection primitive, not a NATS transport or
+an authenticated mesh membership protocol. The HTTP rendezvous handler can be
+mounted in an application-owned server; no particular portal is required.
+See [Application connections](docs/comm.md) for the API, lifecycle, and trust
+boundary.
+
 ## Documentation
 
 - [Getting started](docs/getting-started.md): local API, remote rendezvous
   provider and gateway, S3 smoke test, and shutdown order.
+- [Application connections](docs/comm.md): stream-based `net.Conn` API and
+  application-owned HTTPS rendezvous mounting.
 - [Architecture and security](docs/architecture.md): components, control/data
   planes, persistence, concurrency, trust, and failure behavior.
 - [Protocol v1](docs/protocol.md): ICE/QUIC profile, TLS pinning, frames,
