@@ -80,6 +80,10 @@ func (s *PeerSession) Close() error {
 // server). It generates a fresh ECDSA certificate, advertises its fingerprint
 // through channel, and returns only after the QUIC handshake succeeds.
 func AcceptPeer(ctx context.Context, channel SignalChannel, cfg ICEConfig) (*PeerSession, error) {
+	return acceptPeerWithALPN(ctx, channel, cfg, ALPN)
+}
+
+func acceptPeerWithALPN(ctx context.Context, channel SignalChannel, cfg ICEConfig, alpn string) (*PeerSession, error) {
 	certificate, err := NewSessionCertificate(10 * time.Minute)
 	if err != nil {
 		return nil, err
@@ -88,7 +92,7 @@ func AcceptPeer(ctx context.Context, channel SignalChannel, cfg ICEConfig) (*Pee
 	if err != nil {
 		return nil, err
 	}
-	listener, err := ListenICE(iceConn, certificate)
+	listener, err := listenICEWithALPN(iceConn, certificate, alpn)
 	if err != nil {
 		_ = agent.Close()
 		_ = channel.Close()
@@ -110,13 +114,17 @@ func AcceptPeer(ctx context.Context, channel SignalChannel, cfg ICEConfig) (*Pee
 // The QUIC TLS handshake succeeds only when the provider certificate matches
 // the fingerprint received through channel.
 func DialPeer(ctx context.Context, channel SignalChannel, cfg ICEConfig) (*PeerSession, error) {
+	return dialPeerWithALPN(ctx, channel, cfg, ALPN)
+}
+
+func dialPeerWithALPN(ctx context.Context, channel SignalChannel, cfg ICEConfig, alpn string) (*PeerSession, error) {
 	iceConn, agent, fingerprint, err := negotiateClientICE(ctx, channel, cfg)
 	if err != nil {
 		return nil, err
 	}
 	handshakeCtx, cancel := context.WithTimeout(ctx, DefaultHandshakeTimeout)
 	defer cancel()
-	conn, err := DialICE(handshakeCtx, iceConn, fingerprint)
+	conn, err := dialICEWithALPN(handshakeCtx, iceConn, fingerprint, alpn)
 	if err != nil {
 		_ = agent.Close()
 		_ = channel.Close()

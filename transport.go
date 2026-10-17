@@ -41,6 +41,10 @@ func QUICConfig() *quic.Config {
 // ListenICE starts a single-session QUIC listener over an already connected
 // ICE pair. Closing the listener closes the ICE connection.
 func ListenICE(conn *ice.Conn, certificate SessionCertificate) (*quic.Listener, error) {
+	return listenICEWithALPN(conn, certificate, ALPN)
+}
+
+func listenICEWithALPN(conn *ice.Conn, certificate SessionCertificate, alpn string) (*quic.Listener, error) {
 	packetConn, err := icequic.New(conn)
 	if err != nil {
 		return nil, err
@@ -50,6 +54,7 @@ func ListenICE(conn *ice.Conn, certificate SessionCertificate) (*quic.Listener, 
 		_ = packetConn.Close()
 		return nil, err
 	}
+	tlsConfig.NextProtos = []string{alpn}
 	listener, err := quic.Listen(packetConn, tlsConfig, QUICConfig())
 	if err != nil {
 		_ = packetConn.Close()
@@ -61,6 +66,10 @@ func ListenICE(conn *ice.Conn, certificate SessionCertificate) (*quic.Listener, 
 // DialICE establishes QUIC over an already connected ICE pair and requires a
 // certificate fingerprint received through authenticated signaling.
 func DialICE(ctx context.Context, conn *ice.Conn, fingerprint string) (*quic.Conn, error) {
+	return dialICEWithALPN(ctx, conn, fingerprint, ALPN)
+}
+
+func dialICEWithALPN(ctx context.Context, conn *ice.Conn, fingerprint, alpn string) (*quic.Conn, error) {
 	packetConn, err := icequic.New(conn)
 	if err != nil {
 		return nil, err
@@ -70,6 +79,7 @@ func DialICE(ctx context.Context, conn *ice.Conn, fingerprint string) (*quic.Con
 		_ = packetConn.Close()
 		return nil, err
 	}
+	tlsConfig.NextProtos = []string{alpn}
 	remote := packetConn.RemoteAddr()
 	quicConn, err := quic.Dial(ctx, packetConn, remote, tlsConfig, QUICConfig())
 	if err != nil {
